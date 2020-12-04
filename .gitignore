@@ -145,6 +145,7 @@ jupyter_notebook/
 *.png
 *.tif
 *.log
+*.pdf
 logs/
 models/
 images/
