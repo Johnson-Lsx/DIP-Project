@@ -149,3 +149,4 @@ jupyter_notebook/
 logs/
 models/
 images/
+.vscode/
