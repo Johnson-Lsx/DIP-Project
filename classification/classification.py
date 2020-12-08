@@ -181,7 +181,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
     return model
 
 
-def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: str, optimizer: str, lr: float, batch_size: int, weight_decay: float = 0):
+def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: str, optimizer: str, lr: float, batch_size: int, weight_decay: float = 0, preprocess: str = 'True'):
     """
     Args:
         dataloaders (Dict[str: torch.utils.data.DataLoader]): dataloaders
@@ -193,6 +193,7 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
         lr (float): learning rate
         batch_size (int): batch size
         weight_decay (float, optional): weight_decay(L2 penalty). Default is 0.
+        preprocess (str): wheather or not to use the preprocessed images
     """
     if model.startswith('resnet'):
         if model == 'resnet18':
@@ -251,7 +252,7 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
     exp_lr_scheduler = lr_scheduler.StepLR(
         optimizer_ft, step_size=7, gamma=0.1)
     prefix = model + "_bs" + str(batch_size) + "_optim_" + optimizer + "_lr" + str(
-        lr) + "_wd" + str(weight_decay) + "_epochs" + str(num_epochs)
+        lr) + "_wd" + str(weight_decay) + "_epochs" + str(num_epochs) + "_pre_" + preprocess
     model_ft = train_model(dataloaders, image_datasets, model_ft,
                            criterion, optimizer_ft, exp_lr_scheduler, num_epochs=num_epochs, prefix=prefix)
     torch.save(model_ft, "./models/" + prefix + "_best_acc.pkl")
@@ -304,7 +305,7 @@ def Data_loader(batch_size: int, preprocess: str = 'True'):
 parser = argparse.ArgumentParser(description="Image classification")
 parser.add_argument('--batch_size', default=8, type=int,
                     help='batch size, default 8')
-parser.add_argument('--num_epochs', default=25, type=int,
+parser.add_argument('--num_epochs', default=30, type=int,
                     help='the number of epochs to train the model, default 25')
 parser.add_argument('--model', default='resnet18', type=str,
                     help='the model to train, only supported resnet18, 34, 50 and vgg16, 19, default resnet18')
@@ -339,4 +340,4 @@ if __name__ == '__main__':
         model, batch_size, optimizer, lr, weight_decay, num_epochs, preprocess))
     image_datasets, dataloaders = Data_loader(batch_size=batch_size, preprocess=preprocess)
     train(dataloaders, image_datasets, num_class,
-          num_epochs, model, optimizer, lr, batch_size, weight_decay)
+          num_epochs, model, optimizer, lr, batch_size, weight_decay, preprocess)
