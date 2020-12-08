@@ -225,7 +225,7 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
         feature_params = filter(lambda p: id(
             p) not in output_params, model_ft.parameters())
     elif model.startswith('Net'):
-        model_ft = Net()
+        model_ft = Net().to(device)
         feature_params = None
     else:
         raise ValueError("Unsupported model type: %s" % model)

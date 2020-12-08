@@ -49,9 +49,7 @@ class Net(nn.Module):
         self.fc2 = nn.Linear(in_features=10, out_features=5)
 
         for name, param in self.named_parameters():
-            if 'weight' in name:
-                init.xavier_uniform(param)
-            if 'bias' in name:
+            if 'weight' in name and 'bn' not in name:
                 init.xavier_uniform(param)
 
     def forward(self, x):
