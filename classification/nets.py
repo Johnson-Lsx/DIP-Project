@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+from torch.nn import init
 
 class Net(nn.Module):
 
@@ -47,6 +47,12 @@ class Net(nn.Module):
         # now the shape is (16)
         self.fc1 = nn.Linear(in_features=16, out_features=10)
         self.fc2 = nn.Linear(in_features=10, out_features=5)
+
+        for name, param in self.named_parameters():
+            if 'weight' in name:
+                init.xavier_uniform(param)
+            if 'bias' in name:
+                init.xavier_uniform(param)
 
     def forward(self, x):
         # The shape of x is (batch_size, 3, 224, 224)

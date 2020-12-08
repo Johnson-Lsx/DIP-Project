@@ -17,6 +17,7 @@ from torchvision import models, transforms
 from tqdm import tqdm
 
 from metric import sklearn_cal_metric, sklearn_stat
+from nets import Net
 
 matplotlib.use('Agg')
 
@@ -223,6 +224,9 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
         output_params = list(map(id, model_ft.classifier[6].parameters()))
         feature_params = filter(lambda p: id(
             p) not in output_params, model_ft.parameters())
+    elif model.startswith('Net'):
+        model_ft = Net()
+        feature_params = None
     else:
         raise ValueError("Unsupported model type: %s" % model)
     # model_ft = torch.nn.DataParallel(model_ft)#, device_ids=[0,1])
@@ -235,19 +239,23 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
             optimizer_ft = optim.SGD([{'params': feature_params},
                                       {'params': model_ft.fc.parameters(), 'lr': lr * 10}],
                                      lr=lr, momentum=0.9, weight_decay=weight_decay)
-        else:
+        elif model.startswith('vgg'):
             optimizer_ft = optim.SGD([{'params': feature_params},
                                       {'params': model_ft.classifier[6].parameters(), 'lr': lr * 10}],
                                      lr=lr, momentum=0.9, weight_decay=weight_decay)
+        else:
+            optimizer_ft = optim.SGD(model_ft.parameters(), lr=lr, momentum=0.9)
     else:
         if model.startswith('resnet'):
             optimizer_ft = optim.Adam([{'params': feature_params},
                                        {'params': model_ft.fc.parameters(), 'lr': lr * 10}],
                                       lr=lr, weight_decay=weight_decay)
-        else:
+        elif model.startswith('vgg'):
             optimizer_ft = optim.Adam([{'params': feature_params},
                                        {'params': model_ft.classifier[6].parameters(), 'lr': lr * 10}],
                                       lr=lr, weight_decay=weight_decay)
+        else:
+            optimizer_ft = optim.SGD(model_ft.parameters(), lr=lr, momentum=0.9)
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(
         optimizer_ft, step_size=7, gamma=0.1)
@@ -282,14 +290,14 @@ def Data_loader(batch_size: int, preprocess: str = 'True'):
     }
     if preprocess == 'True':
         image_datasets = {x: customData(txt_path=(x + '.txt'),
-                                    dataset=x,
-                                    data_transforms=data_transforms,
-                                    ) for x in ['train', 'val']}
+                                        dataset=x,
+                                        data_transforms=data_transforms,
+                                        ) for x in ['train', 'val']}
     elif preprocess == 'False':
         image_datasets = {x: customData(txt_path=('ori_' + x + '.txt'),
-                                    dataset=x,
-                                    data_transforms=data_transforms,
-                                    ) for x in ['train', 'val']}
+                                        dataset=x,
+                                        data_transforms=data_transforms,
+                                        ) for x in ['train', 'val']}
     else:
         raise ValueError("preprocess can only be True or False")
     # wrap your data and label into Tensor
@@ -317,7 +325,7 @@ parser.add_argument('--weight_decay', default=0,
                     type=float, help='weight_decay, default 0')
 parser.add_argument('--preprocess', default='True',
                     type=str, help='wheather or not to use the preprocessed images, can only be True or False, default True')
-                    
+
 if __name__ == '__main__':
     args = parser.parse_args()
     num_class = 5
@@ -338,6 +346,7 @@ if __name__ == '__main__':
                         filemode='w')
     logging.info('model: {} batch_size: {} optimizer: {} learning_rate: {:.4f} weight_decay: {:.4f} num_epochs: {} preprocess: {}'.format(
         model, batch_size, optimizer, lr, weight_decay, num_epochs, preprocess))
-    image_datasets, dataloaders = Data_loader(batch_size=batch_size, preprocess=preprocess)
+    image_datasets, dataloaders = Data_loader(
+        batch_size=batch_size, preprocess=preprocess)
     train(dataloaders, image_datasets, num_class,
           num_epochs, model, optimizer, lr, batch_size, weight_decay, preprocess)
