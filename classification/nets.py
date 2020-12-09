@@ -50,7 +50,7 @@ class Net(nn.Module):
 
         for name, param in self.named_parameters():
             if 'weight' in name and 'bn' not in name:
-                init.xavier_uniform(param)
+                init.xavier_uniform_(param)
 
     def forward(self, x):
         # The shape of x is (batch_size, 3, 224, 224)
