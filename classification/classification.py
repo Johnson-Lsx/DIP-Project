@@ -76,6 +76,38 @@ class customData(Dataset):
                 print("Cannot transform image: {}".format(img_name))
         return img, label
 
+def plot_curve(train, dev, mode, prefix):
+    """AI is creating summary for plot_curve
+
+    Args:
+        train (List[float]): the accuracy or loss of the train set
+        dev (List[float]): the accuracy or loss of the dev set
+        mode (str): plot the accuracy curve or loss curve
+        prefix (str): the path to save the image
+
+    Raises:
+        ValueError: the mode parameter can only be 'acc' or 'ls'
+    """
+    if mode == 'acc':
+        plt.xlabel("epochs")
+        plt.ylabel("accuracy")
+        plt.plot(train, label='train acc', marker = "s")
+        plt.plot(dev, label='dev acc', marker = "o")
+        plt.legend(loc='best')
+        plt.grid()
+        plt.savefig('./images/' + prefix + '_acc.png')
+        plt.close()
+    elif mode == 'ls':
+        plt.xlabel("epochs")
+        plt.ylabel("loss")
+        plt.plot(train, label='train loss', marker = "s")
+        plt.plot(dev, label='dev loss', marker = "o")
+        plt.legend(loc='best')
+        plt.grid()
+        plt.savefig('./images/' + prefix + '_ls.png')
+        plt.close()
+    else:
+        raise ValueError("Unsupported mode type: %s" % mode)
 
 def train_model(dataloaders, image_datasets, model, criterion, optimizer, scheduler, num_epochs, prefix):
     """
@@ -95,6 +127,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
     since = time.time()
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
+    cnt = 0
     use_auc = True
     train_acc = []
     dev_acc = []
@@ -159,18 +192,24 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
                 logging.info(msg)
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
+                cnt = 0
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
-        plt.plot(train_acc, label='train acc')
-        plt.plot(dev_acc, label='dev acc')
-        plt.legend(loc='best')
-        plt.savefig('./images/' + prefix + '_acc.png')
-        plt.close()
-        plt.plot(train_ls, label='train loss')
-        plt.plot(dev_ls, label='dev loss')
-        plt.legend(loc='best')
-        plt.savefig('./images/' + prefix + '_ls.png')
-        plt.close()
+            else:
+                cnt += 1      
+        plot_curve(train_acc, dev_acc, 'acc', prefix)
+        plot_curve(train_ls, dev_ls, 'ls', prefix)
+        if cnt == 10:
+            time_elapsed = time.time() - since
+            print('Training complete in {:.0f}m {:.0f}s'.format(
+                time_elapsed // 60, time_elapsed % 60))
+            print('Best val Acc: {:4f}'.format(best_acc))
+            logging.info('Accuracy on dev set has not improved for 10 epochs, stop training early')
+            logging.info('Best val Acc: {:4f}'.format(best_acc))
+            # load best model weights
+            model.load_state_dict(best_model_wts)
+            return model
+
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
