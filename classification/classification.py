@@ -195,8 +195,10 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
                 cnt = 0
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
-            else:
+            elif phase == 'val' and epoch_acc < best_acc:
                 cnt += 1      
+            else:
+                continue
         plot_curve(train_acc, dev_acc, 'acc', prefix)
         plot_curve(train_ls, dev_ls, 'ls', prefix)
         if cnt == 10:
