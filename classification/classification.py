@@ -174,7 +174,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
 
                 old_stat = sklearn_stat(
                     outputs=outputs, labels=labels, old_stat=old_stat, use_auc=use_auc)
-                stat_list = stat(num_class=num_class, preds=preds,
+                stat_list = stat(num_classes=num_class, preds=preds,
                                  labels=labels, old_stat=stat_list)
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
