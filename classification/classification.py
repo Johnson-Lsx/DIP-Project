@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 from torchvision import models, transforms
 from tqdm import tqdm
 
-from metric import cal_metric, sklearn_cal_metric, sklearn_stat, stat
+from metric import cal_metric, sklearn_cal_metric, sklearn_stat, stat, sklearn_plot
 from nets import Net
 
 matplotlib.use('Agg')
@@ -179,7 +179,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
             metric = sklearn_cal_metric(
-                old_stat, use_auc=use_auc, prefix=prefix)
+                old_stat, use_auc=use_auc)
             metric_dict = cal_metric(stat=stat_list)
             if phase == 'train':
                 train_acc.append(epoch_acc)
@@ -213,6 +213,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
                 cnt = 0
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
+                sklearn_plot(old_stat, prefix)
             elif phase == 'val' and epoch_acc < best_acc:
                 cnt += 1
             else:
