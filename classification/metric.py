@@ -1,7 +1,9 @@
 import numpy as np
+import seaborn as sn
 import torch.nn as nn
-from sklearn.metrics import (f1_score, precision_score, recall_score,
-                             roc_auc_score)
+from matplotlib import pyplot as plt
+from sklearn.metrics import (confusion_matrix, f1_score, precision_score,
+                             recall_score, roc_auc_score)
 
 
 def stat(num_classes, preds, labels, old_stat):
@@ -109,15 +111,21 @@ def sklearn_stat(outputs, labels, old_stat, use_auc):
     return old_stat
 
 
-def sklearn_cal_metric(stat, use_auc):
+def sklearn_cal_metric(stat, use_auc, prefix):
     """
     Args:
         stat (Dict[str, list[int]]): the history of preds and labels
         use_auc (bool): whether to compute the AUC metric
-
+        prefix (str): the path to store the image of confusion_matrix
     Returns:
         [dict]: the metric of the whole dataset
     """
+    sn.heatmap(confusion_matrix(
+        stat['labels'], stat['preds']), annot=True, cmap='OrRd')
+    plt.xlabel('Predicted label', color='k')  # x轴label的文本和字体大小
+    plt.ylabel('True label', color='k')  # y轴label的文本和字体大小
+    plt.savefig('./images/' + prefix + '_confusion_matrix.png')
+    plt.close()
     metric = dict()
     metric['precision'] = precision_score(
         stat['labels'], stat['preds'], average='macro')
