@@ -1,6 +1,7 @@
 import numpy as np
 import torch.nn as nn
-from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.metrics import (f1_score, precision_score, recall_score,
+                             roc_auc_score)
 
 
 def stat(num_classes, preds, labels, old_stat):
@@ -21,8 +22,11 @@ def stat(num_classes, preds, labels, old_stat):
             tmp['TP'] = 0
             tmp['FP'] = 0
             tmp['FN'] = 0
+            tmp['Total'] = 0
             old_stat.append(tmp)
     for i in range(len(preds)):
+        # 统计每个类别的总数
+        old_stat[labels[i]]['Total'] += 1
         # 预测的和实际的类别相等,该类别的TP数量加1
         if preds[i] == labels[i]:
             old_stat[preds[i]]['TP'] += 1
@@ -37,20 +41,31 @@ def stat(num_classes, preds, labels, old_stat):
 
 
 def cal_metric(stat):
+    """
+    Args:
+        stat (List[dict]): the num of TP, FP, FN of each class
+
+    Return:
+        [dict]: the metric of each class
+    """
+    accuracy = list()
     precision = list()
     recall = list()
     F1_score = list()
     metric = dict()
     for i in range(len(stat)):
+        a = float(stat[i]['TP'])/(stat[i]['Total'])
         p = float(stat[i]['TP'])/(stat[i]['TP']+stat[i]['FP'])
         r = float(stat[i]['TP'])/(stat[i]['TP']+stat[i]['FN'])
         f = 2/(1/p + 1/r)
+        accuracy.append(a)
         precision.append(p)
         recall.append(r)
         F1_score.append(f)
-    metric['precision'] = np.mean(precision)
-    metric['recall'] = np.mean(recall)
-    metric['F1_score'] = np.mean(F1_score)
+    metric['accuracy'] = accuracy
+    metric['precision'] = precision
+    metric['recall'] = recall
+    metric['F1_score'] = F1_score
     return metric
 
 
@@ -82,7 +97,7 @@ def sklearn_stat(outputs, labels, old_stat, use_auc):
     for i in range(len(preds)):
         old_stat['preds'].append(preds[i].item())
         old_stat['labels'].append(labels[i].item())
-    
+
     if use_auc:
         if len(old_stat['scores']) == 0:
             old_stat['scores'].append(prob)
@@ -95,6 +110,14 @@ def sklearn_stat(outputs, labels, old_stat, use_auc):
 
 
 def sklearn_cal_metric(stat, use_auc):
+    """
+    Args:
+        stat (Dict[str, list[int]]): the history of preds and labels
+        use_auc (bool): whether to compute the AUC metric
+
+    Returns:
+        [dict]: the metric of the whole dataset
+    """
     metric = dict()
     metric['precision'] = precision_score(
         stat['labels'], stat['preds'], average='macro')

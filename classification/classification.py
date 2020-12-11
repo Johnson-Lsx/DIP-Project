@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 from torchvision import models, transforms
 from tqdm import tqdm
 
-from metric import sklearn_cal_metric, sklearn_stat
+from metric import cal_metric, sklearn_cal_metric, sklearn_stat, stat
 from nets import Net
 
 matplotlib.use('Agg')
@@ -76,6 +76,7 @@ class customData(Dataset):
                 print("Cannot transform image: {}".format(img_name))
         return img, label
 
+
 def plot_curve(train, dev, mode, prefix):
     """AI is creating summary for plot_curve
 
@@ -91,8 +92,8 @@ def plot_curve(train, dev, mode, prefix):
     if mode == 'acc':
         plt.xlabel("epochs")
         plt.ylabel("accuracy")
-        plt.plot(train, label='train acc', marker = "s")
-        plt.plot(dev, label='dev acc', marker = "o")
+        plt.plot(train, label='train acc', marker="s")
+        plt.plot(dev, label='dev acc', marker="o")
         plt.legend(loc='best')
         plt.grid()
         plt.savefig('./images/' + prefix + '_acc.png')
@@ -100,8 +101,8 @@ def plot_curve(train, dev, mode, prefix):
     elif mode == 'ls':
         plt.xlabel("epochs")
         plt.ylabel("loss")
-        plt.plot(train, label='train loss', marker = "s")
-        plt.plot(dev, label='dev loss', marker = "o")
+        plt.plot(train, label='train loss', marker="s")
+        plt.plot(dev, label='dev loss', marker="o")
         plt.legend(loc='best')
         plt.grid()
         plt.savefig('./images/' + prefix + '_ls.png')
@@ -109,7 +110,8 @@ def plot_curve(train, dev, mode, prefix):
     else:
         raise ValueError("Unsupported mode type: %s" % mode)
 
-def train_model(dataloaders, image_datasets, model, criterion, optimizer, scheduler, num_epochs, prefix):
+
+def train_model(dataloaders, image_datasets, model, criterion, optimizer, scheduler, num_epochs, prefix, num_class):
     """
     Args:
         dataloaders (Dict[str: torch.utils.data.DataLoader]): dataloaders that send the data to the model.
@@ -120,6 +122,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
         scheduler (torch.optim.lr_scheduler): learning rate scheduler.
         num_epochs (int): the number of epochs to train the model.
         prefix (str): the name of images
+        num_class (int): the number of classes.
     Returns:
         torchvision.models: the trained network model.
     """
@@ -147,6 +150,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
             running_loss = 0.0
             running_corrects = 0
             old_stat = dict()
+            stat_list = list()
             # Iterate over data.
             for inputs, labels in tqdm(dataloaders[phase]):
                 inputs = inputs.to(device)
@@ -170,9 +174,12 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
 
                 old_stat = sklearn_stat(
                     outputs=outputs, labels=labels, old_stat=old_stat, use_auc=use_auc)
+                stat_list = stat(num_class=num_class, preds=preds,
+                                 labels=labels, old_stat=stat_list)
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
             metric = sklearn_cal_metric(old_stat, use_auc=use_auc)
+            metric_dict = cal_metric(stat=stat_list)
             if phase == 'train':
                 train_acc.append(epoch_acc)
                 train_ls.append(epoch_loss)
@@ -185,18 +192,28 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
                     epoch, phase, epoch_loss, epoch_acc, metric['precision'], metric['recall'], metric['F1_score'], metric['auc'])
                 print(msg)
                 logging.info(msg)
+                msg1 = 'The accuracy for class 0 is: {:.4f}, class 1 is: {:.4f}, class 2 is: {:.4f}, class 3 is: {:.4f}, class 4 is: {:.4f}'.format(
+                    metric_dict['accuracy'][0], metric_dict['accuracy'][1], metric_dict[
+                        'accuracy'][2], metric_dict['accuracy'][3], metric_dict['accuracy'][4],
+                )
+                logging.info(msg1)
             else:
                 msg = 'epoch: {} phase: {} Loss: {:.4f} Acc: {:.4f} Precision: {:.4f} Recall: {:.4f} F1-score: {:.4f}'.format(
                     epoch, phase, epoch_loss, epoch_acc, metric['precision'], metric['recall'], metric['F1_score'])
                 print(msg)
                 logging.info(msg)
+                msg1 = 'The accuracy for class 0 is: {:.4f}, class 1 is: {:.4f}, class 2 is: {:.4f}, class 3 is: {:.4f}, class 4 is: {:.4f}'.format(
+                    metric_dict['accuracy'][0], metric_dict['accuracy'][1], metric_dict[
+                        'accuracy'][2], metric_dict['accuracy'][3], metric_dict['accuracy'][4],
+                )
+                logging.info(msg1)
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
                 cnt = 0
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
             else:
-                cnt += 1      
+                cnt += 1
         plot_curve(train_acc, dev_acc, 'acc', prefix)
         plot_curve(train_ls, dev_ls, 'ls', prefix)
         if cnt == 10:
@@ -204,7 +221,8 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
             print('Training complete in {:.0f}m {:.0f}s'.format(
                 time_elapsed // 60, time_elapsed % 60))
             print('Best val Acc: {:4f}'.format(best_acc))
-            logging.info('Accuracy on dev set has not improved for 10 epochs, stop training early')
+            logging.info(
+                'Accuracy on dev set has not improved for 10 epochs, stop training early')
             logging.info('Best val Acc: {:4f}'.format(best_acc))
             # load best model weights
             model.load_state_dict(best_model_wts)
@@ -283,7 +301,8 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
                                       {'params': model_ft.classifier[6].parameters(), 'lr': lr * 10}],
                                      lr=lr, momentum=0.9, weight_decay=weight_decay)
         else:
-            optimizer_ft = optim.SGD(model_ft.parameters(), lr=lr, momentum=0.9)
+            optimizer_ft = optim.SGD(
+                model_ft.parameters(), lr=lr, momentum=0.9)
     else:
         if model.startswith('resnet'):
             optimizer_ft = optim.Adam([{'params': feature_params},
@@ -294,7 +313,8 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
                                        {'params': model_ft.classifier[6].parameters(), 'lr': lr * 10}],
                                       lr=lr, weight_decay=weight_decay)
         else:
-            optimizer_ft = optim.SGD(model_ft.parameters(), lr=lr, momentum=0.9)
+            optimizer_ft = optim.SGD(
+                model_ft.parameters(), lr=lr, momentum=0.9)
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(
         optimizer_ft, step_size=7, gamma=0.1)
