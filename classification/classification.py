@@ -323,7 +323,7 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
     prefix = model + "_bs" + str(batch_size) + "_optim_" + optimizer + "_lr" + str(
         lr) + "_wd" + str(weight_decay) + "_epochs" + str(num_epochs) + "_pre_" + preprocess
     model_ft = train_model(dataloaders, image_datasets, model_ft,
-                           criterion, optimizer_ft, exp_lr_scheduler, num_epochs=num_epochs, prefix=prefix)
+                           criterion, optimizer_ft, exp_lr_scheduler, num_epochs=num_epochs, prefix=prefix, num_class=num_class)
     torch.save(model_ft, "./models/" + prefix + "_best_acc.pkl")
 
 
