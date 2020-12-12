@@ -16,7 +16,8 @@ from torch.utils.data import Dataset
 from torchvision import models, transforms
 from tqdm import tqdm
 
-from metric import sklearn_cal_metric, sklearn_stat
+from metric import cal_metric, sklearn_cal_metric, sklearn_stat, stat, sklearn_plot
+from nets import Net
 
 matplotlib.use('Agg')
 
@@ -76,7 +77,41 @@ class customData(Dataset):
         return img, label
 
 
-def train_model(dataloaders, image_datasets, model, criterion, optimizer, scheduler, num_epochs, prefix):
+def plot_curve(train, dev, mode, prefix):
+    """AI is creating summary for plot_curve
+
+    Args:
+        train (List[float]): the accuracy or loss of the train set
+        dev (List[float]): the accuracy or loss of the dev set
+        mode (str): plot the accuracy curve or loss curve
+        prefix (str): the path to save the image
+
+    Raises:
+        ValueError: the mode parameter can only be 'acc' or 'ls'
+    """
+    if mode == 'acc':
+        plt.xlabel("epochs")
+        plt.ylabel("accuracy")
+        plt.plot(train, label='train acc', marker="s")
+        plt.plot(dev, label='dev acc', marker="o")
+        plt.legend(loc='best')
+        plt.grid()
+        plt.savefig('./images/' + prefix + '_acc.png')
+        plt.close()
+    elif mode == 'ls':
+        plt.xlabel("epochs")
+        plt.ylabel("loss")
+        plt.plot(train, label='train loss', marker="s")
+        plt.plot(dev, label='dev loss', marker="o")
+        plt.legend(loc='best')
+        plt.grid()
+        plt.savefig('./images/' + prefix + '_ls.png')
+        plt.close()
+    else:
+        raise ValueError("Unsupported mode type: %s" % mode)
+
+
+def train_model(dataloaders, image_datasets, model, criterion, optimizer, scheduler, num_epochs, prefix, num_class):
     """
     Args:
         dataloaders (Dict[str: torch.utils.data.DataLoader]): dataloaders that send the data to the model.
@@ -87,6 +122,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
         scheduler (torch.optim.lr_scheduler): learning rate scheduler.
         num_epochs (int): the number of epochs to train the model.
         prefix (str): the name of images
+        num_class (int): the number of classes.
     Returns:
         torchvision.models: the trained network model.
     """
@@ -94,6 +130,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
     since = time.time()
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
+    cnt = 0
     use_auc = True
     train_acc = []
     dev_acc = []
@@ -113,6 +150,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
             running_loss = 0.0
             running_corrects = 0
             old_stat = dict()
+            stat_list = list()
             # Iterate over data.
             for inputs, labels in tqdm(dataloaders[phase]):
                 inputs = inputs.to(device)
@@ -136,9 +174,13 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
 
                 old_stat = sklearn_stat(
                     outputs=outputs, labels=labels, old_stat=old_stat, use_auc=use_auc)
+                stat_list = stat(num_classes=num_class, preds=preds,
+                                 labels=labels, old_stat=stat_list)
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
-            metric = sklearn_cal_metric(old_stat, use_auc=use_auc)
+            metric = sklearn_cal_metric(
+                old_stat, use_auc=use_auc)
+            metric_dict = cal_metric(stat=stat_list)
             if phase == 'train':
                 train_acc.append(epoch_acc)
                 train_ls.append(epoch_loss)
@@ -151,25 +193,45 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
                     epoch, phase, epoch_loss, epoch_acc, metric['precision'], metric['recall'], metric['F1_score'], metric['auc'])
                 print(msg)
                 logging.info(msg)
+                msg1 = 'The accuracy for class 0 is: {:.4f}, class 1 is: {:.4f}, class 2 is: {:.4f}, class 3 is: {:.4f}, class 4 is: {:.4f}'.format(
+                    metric_dict['accuracy'][0], metric_dict['accuracy'][1], metric_dict[
+                        'accuracy'][2], metric_dict['accuracy'][3], metric_dict['accuracy'][4],
+                )
+                logging.info(msg1)
             else:
                 msg = 'epoch: {} phase: {} Loss: {:.4f} Acc: {:.4f} Precision: {:.4f} Recall: {:.4f} F1-score: {:.4f}'.format(
                     epoch, phase, epoch_loss, epoch_acc, metric['precision'], metric['recall'], metric['F1_score'])
                 print(msg)
                 logging.info(msg)
+                msg1 = 'The accuracy for class 0 is: {:.4f}, class 1 is: {:.4f}, class 2 is: {:.4f}, class 3 is: {:.4f}, class 4 is: {:.4f}'.format(
+                    metric_dict['accuracy'][0], metric_dict['accuracy'][1], metric_dict[
+                        'accuracy'][2], metric_dict['accuracy'][3], metric_dict['accuracy'][4],
+                )
+                logging.info(msg1)
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
+                cnt = 0
                 best_acc = epoch_acc
                 best_model_wts = copy.deepcopy(model.state_dict())
-        plt.plot(train_acc, label='train acc')
-        plt.plot(dev_acc, label='dev acc')
-        plt.legend(loc='best')
-        plt.savefig('./images/' + prefix + '_acc.png')
-        plt.close()
-        plt.plot(train_ls, label='train loss')
-        plt.plot(dev_ls, label='dev loss')
-        plt.legend(loc='best')
-        plt.savefig('./images/' + prefix + '_ls.png')
-        plt.close()
+                sklearn_plot(old_stat, prefix)
+            elif phase == 'val' and epoch_acc < best_acc:
+                cnt += 1
+            else:
+                continue
+        plot_curve(train_acc, dev_acc, 'acc', prefix)
+        plot_curve(train_ls, dev_ls, 'ls', prefix)
+        if cnt == 10:
+            time_elapsed = time.time() - since
+            print('Training complete in {:.0f}m {:.0f}s'.format(
+                time_elapsed // 60, time_elapsed % 60))
+            print('Best val Acc: {:4f}'.format(best_acc))
+            logging.info(
+                'Accuracy on dev set has not improved for 10 epochs, stop training early')
+            logging.info('Best val Acc: {:4f}'.format(best_acc))
+            # load best model weights
+            model.load_state_dict(best_model_wts)
+            return model
+
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
@@ -181,7 +243,7 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
     return model
 
 
-def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: str, optimizer: str, lr: float, batch_size: int, weight_decay: float = 0):
+def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: str, optimizer: str, lr: float, batch_size: int, weight_decay: float = 0, preprocess: str = 'True'):
     """
     Args:
         dataloaders (Dict[str: torch.utils.data.DataLoader]): dataloaders
@@ -193,6 +255,7 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
         lr (float): learning rate
         batch_size (int): batch size
         weight_decay (float, optional): weight_decay(L2 penalty). Default is 0.
+        preprocess (str): wheather or not to use the preprocessed images
     """
     if model.startswith('resnet'):
         if model == 'resnet18':
@@ -222,6 +285,9 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
         output_params = list(map(id, model_ft.classifier[6].parameters()))
         feature_params = filter(lambda p: id(
             p) not in output_params, model_ft.parameters())
+    elif model.startswith('Net'):
+        model_ft = Net().to(device)
+        feature_params = None
     else:
         raise ValueError("Unsupported model type: %s" % model)
     # model_ft = torch.nn.DataParallel(model_ft)#, device_ids=[0,1])
@@ -234,26 +300,32 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
             optimizer_ft = optim.SGD([{'params': feature_params},
                                       {'params': model_ft.fc.parameters(), 'lr': lr * 10}],
                                      lr=lr, momentum=0.9, weight_decay=weight_decay)
-        else:
+        elif model.startswith('vgg'):
             optimizer_ft = optim.SGD([{'params': feature_params},
                                       {'params': model_ft.classifier[6].parameters(), 'lr': lr * 10}],
                                      lr=lr, momentum=0.9, weight_decay=weight_decay)
+        else:
+            optimizer_ft = optim.SGD(
+                model_ft.parameters(), lr=lr, momentum=0.9)
     else:
         if model.startswith('resnet'):
             optimizer_ft = optim.Adam([{'params': feature_params},
                                        {'params': model_ft.fc.parameters(), 'lr': lr * 10}],
                                       lr=lr, weight_decay=weight_decay)
-        else:
+        elif model.startswith('vgg'):
             optimizer_ft = optim.Adam([{'params': feature_params},
                                        {'params': model_ft.classifier[6].parameters(), 'lr': lr * 10}],
                                       lr=lr, weight_decay=weight_decay)
+        else:
+            optimizer_ft = optim.SGD(
+                model_ft.parameters(), lr=lr, momentum=0.9)
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(
         optimizer_ft, step_size=7, gamma=0.1)
     prefix = model + "_bs" + str(batch_size) + "_optim_" + optimizer + "_lr" + str(
-        lr) + "_wd" + str(weight_decay) + "_epochs" + str(num_epochs)
+        lr) + "_wd" + str(weight_decay) + "_epochs" + str(num_epochs) + "_pre_" + preprocess
     model_ft = train_model(dataloaders, image_datasets, model_ft,
-                           criterion, optimizer_ft, exp_lr_scheduler, num_epochs=num_epochs, prefix=prefix)
+                           criterion, optimizer_ft, exp_lr_scheduler, num_epochs=num_epochs, prefix=prefix, num_class=num_class)
     torch.save(model_ft, "./models/" + prefix + "_best_acc.pkl")
 
 
@@ -281,14 +353,14 @@ def Data_loader(batch_size: int, preprocess: str = 'True'):
     }
     if preprocess == 'True':
         image_datasets = {x: customData(txt_path=(x + '.txt'),
-                                    dataset=x,
-                                    data_transforms=data_transforms,
-                                    ) for x in ['train', 'val']}
+                                        dataset=x,
+                                        data_transforms=data_transforms,
+                                        ) for x in ['train', 'val']}
     elif preprocess == 'False':
         image_datasets = {x: customData(txt_path=('ori_' + x + '.txt'),
-                                    dataset=x,
-                                    data_transforms=data_transforms,
-                                    ) for x in ['train', 'val']}
+                                        dataset=x,
+                                        data_transforms=data_transforms,
+                                        ) for x in ['train', 'val']}
     else:
         raise ValueError("preprocess can only be True or False")
     # wrap your data and label into Tensor
@@ -304,19 +376,19 @@ def Data_loader(batch_size: int, preprocess: str = 'True'):
 parser = argparse.ArgumentParser(description="Image classification")
 parser.add_argument('--batch_size', default=8, type=int,
                     help='batch size, default 8')
-parser.add_argument('--num_epochs', default=25, type=int,
+parser.add_argument('--num_epochs', default=30, type=int,
                     help='the number of epochs to train the model, default 25')
 parser.add_argument('--model', default='resnet18', type=str,
                     help='the model to train, only supported resnet18, 34, 50 and vgg16, 19, default resnet18')
 parser.add_argument('--optimizer', default='adam', type=str,
                     help='optimizer to optimize the model parameters, default adam')
-parser.add_argument('--lr', default=0.001, type=float,
-                    help='learning rate, default 0.001')
+parser.add_argument('--lr', default=0.0001, type=float,
+                    help='learning rate, default 0.0001')
 parser.add_argument('--weight_decay', default=0,
                     type=float, help='weight_decay, default 0')
 parser.add_argument('--preprocess', default='True',
                     type=str, help='wheather or not to use the preprocessed images, can only be True or False, default True')
-                    
+
 if __name__ == '__main__':
     args = parser.parse_args()
     num_class = 5
@@ -337,6 +409,7 @@ if __name__ == '__main__':
                         filemode='w')
     logging.info('model: {} batch_size: {} optimizer: {} learning_rate: {:.4f} weight_decay: {:.4f} num_epochs: {} preprocess: {}'.format(
         model, batch_size, optimizer, lr, weight_decay, num_epochs, preprocess))
-    image_datasets, dataloaders = Data_loader(batch_size=batch_size, preprocess=preprocess)
+    image_datasets, dataloaders = Data_loader(
+        batch_size=batch_size, preprocess=preprocess)
     train(dataloaders, image_datasets, num_class,
-          num_epochs, model, optimizer, lr, batch_size, weight_decay)
+          num_epochs, model, optimizer, lr, batch_size, weight_decay, preprocess)
