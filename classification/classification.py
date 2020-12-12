@@ -382,8 +382,8 @@ parser.add_argument('--model', default='resnet18', type=str,
                     help='the model to train, only supported resnet18, 34, 50 and vgg16, 19, default resnet18')
 parser.add_argument('--optimizer', default='adam', type=str,
                     help='optimizer to optimize the model parameters, default adam')
-parser.add_argument('--lr', default=0.001, type=float,
-                    help='learning rate, default 0.001')
+parser.add_argument('--lr', default=0.0001, type=float,
+                    help='learning rate, default 0.0001')
 parser.add_argument('--weight_decay', default=0,
                     type=float, help='weight_decay, default 0')
 parser.add_argument('--preprocess', default='True',
