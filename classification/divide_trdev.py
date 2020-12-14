@@ -57,5 +57,8 @@ if __name__ == '__main__':
     pre = args.pre
     if pre == 'True':
         main(data_path=data_path, pre=True)
-    else:
+    elif pre == 'False':
         main(data_path=data_path, pre=False)
+    else:
+        raise ValueError("Unsupported type: %s" % pre)
+
