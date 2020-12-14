@@ -34,7 +34,7 @@ def main(data_path: str, pre: bool = True):
             for p in train:
                 for file in os.listdir(p):
                     line = str(
-                        p) + '/' + str(file).split("'")[1] + ' ' + str(label_dict[dir]) + '\n'
+                        p) + '/' + str(file) + ' ' + str(label_dict[dir]) + '\n'
                     f.write(line)
         with open(val_txt, 'a') as f:
             for p in val:
