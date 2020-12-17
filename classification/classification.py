@@ -16,7 +16,8 @@ from torch.utils.data import Dataset
 from torchvision import models, transforms
 from tqdm import tqdm
 
-from metric import cal_metric, sklearn_cal_metric, sklearn_stat, stat, sklearn_plot
+from metric import (
+    cal_metric, sklearn_cal_metric, sklearn_plot, sklearn_stat, stat)
 from nets import Net
 
 matplotlib.use('Agg')
@@ -243,6 +244,101 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
     return model
 
 
+def eval(dataloaders, image_datasets, num_class, model_name, prefix):
+    """
+    Args:
+        dataloaders (Dict[str: torch.utils.data.DataLoader]): dataloaders that send the data to the model.
+        image_datasets (Dict[str: torch.utils.data.Dataset]): training and validation datasets.
+        num_class (int): the number of classes.
+        model_name (str): the name of the model to be evaluated, only support resnet18, 34, 50 and vgg16, 19.
+        prefix (str): the name of image of the confuse matrix
+    """
+    phase = 'val'
+    criterion = nn.CrossEntropyLoss()
+    model_path = "./models/" + prefix + "_best_acc.pkl"
+    dataset_sizes = {x: len(image_datasets[x]) for x in [phase]}
+    since = time.time()
+    if model_name.startswith('resnet'):
+        if model_name == 'resnet18':
+            model = models.resnet18(pretrained=False)
+        elif model_name == 'resnet34':
+            model = models.resnet34(pretrained=False)
+        elif model_name == 'resnet50':
+            model = models.resnet50(pretrained=False)
+        else:
+            raise ValueError("Unsupported model type: %s" % model)
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, num_class)
+        model = model.to(device)
+        model.load_state_dict(torch.load(model_path))
+    elif model_name.startswith('vgg'):
+        if model_name == 'vgg16':
+            model = models.vgg16(pretrained=False)
+        elif model_name == 'vgg19':
+            model = models.vgg19(pretrained=False)
+        else:
+            raise ValueError("Unsupported model type: %s" % model)
+        num_ftrs = model.classifier[6].in_features
+        model.classifier[6] = nn.Linear(num_ftrs, num_class)
+        model = model.to(device)
+        model.load_state_dict(torch.load(model_path))
+    elif model_name.startswith('Net'):
+        model = Net().to(device)
+        model.load_state_dict(torch.load(model_path))
+    else:
+        raise ValueError("Unsupported model type: %s" % model)
+    use_auc = True
+
+    for epoch in range(1):
+        model.eval()   # Set model to evaluate mode
+        running_loss = 0.0
+        running_corrects = 0
+        old_stat = dict()
+        stat_list = list()
+        # Iterate over data.
+        for inputs, labels in tqdm(dataloaders[phase]):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            with torch.set_grad_enabled(False):
+                outputs = model(inputs)
+                preds = outputs.argmax(dim=1)
+                loss = criterion(outputs, labels)
+            # statistics
+            running_loss += loss.item()
+            running_corrects += torch.sum(preds == labels.data)
+            old_stat = sklearn_stat(
+                outputs=outputs, labels=labels, old_stat=old_stat, use_auc=use_auc)
+            stat_list = stat(num_classes=num_class, preds=preds,
+                             labels=labels, old_stat=stat_list)
+        epoch_loss = running_loss / dataset_sizes[phase]
+        epoch_acc = running_corrects.double() / dataset_sizes[phase]
+        metric = sklearn_cal_metric(
+            old_stat, use_auc=use_auc)
+        metric_dict = cal_metric(stat=stat_list)
+
+        if use_auc:
+            msg = '{} Loss: {:.4f} Acc: {:.4f} Precision: {:.4f} Recall: {:.4f} F1-score: {:.4f} AUC: {:.4f}'.format(
+                phase, epoch_loss, epoch_acc, metric['precision'], metric['recall'], metric['F1_score'], metric['auc'])
+            print(msg)
+            logging.info(msg)
+            msg1 = 'The accuracy for class 0 is: {:.4f}, class 1 is: {:.4f}, class 2 is: {:.4f}, class 3 is: {:.4f}, class 4 is: {:.4f}'.format(
+                metric_dict['accuracy'][0], metric_dict['accuracy'][1], metric_dict[
+                    'accuracy'][2], metric_dict['accuracy'][3], metric_dict['accuracy'][4],
+            )
+            logging.info(msg1)
+        else:
+            msg = '{} Loss: {:.4f} Acc: {:.4f} Precision: {:.4f} Recall: {:.4f} F1-score: {:.4f}'.format(
+                phase, epoch_loss, epoch_acc, metric['precision'], metric['recall'], metric['F1_score'])
+            print(msg)
+            logging.info(msg)
+            msg1 = 'The accuracy for class 0 is: {:.4f}, class 1 is: {:.4f}, class 2 is: {:.4f}, class 3 is: {:.4f}, class 4 is: {:.4f}'.format(
+                metric_dict['accuracy'][0], metric_dict['accuracy'][1], metric_dict[
+                    'accuracy'][2], metric_dict['accuracy'][3], metric_dict['accuracy'][4],
+            )
+            logging.info(msg1)
+        sklearn_plot(old_stat, prefix + '_eval')
+
+
 def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: str, optimizer: str, lr: float, batch_size: int, weight_decay: float = 0, preprocess: str = 'True'):
     """
     Args:
@@ -256,6 +352,8 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
         batch_size (int): batch size
         weight_decay (float, optional): weight_decay(L2 penalty). Default is 0.
         preprocess (str): wheather or not to use the preprocessed images
+    Return:
+        prefix (str): the prefix of the parameter file of the model.
     """
     if model.startswith('resnet'):
         if model == 'resnet18':
@@ -327,6 +425,7 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
     model_ft = train_model(dataloaders, image_datasets, model_ft,
                            criterion, optimizer_ft, exp_lr_scheduler, num_epochs=num_epochs, prefix=prefix, num_class=num_class)
     torch.save(model_ft, "./models/" + prefix + "_best_acc.pkl")
+    return prefix
 
 
 def Data_loader(batch_size: int, preprocess: str = 'True'):
@@ -411,5 +510,6 @@ if __name__ == '__main__':
         model, batch_size, optimizer, lr, weight_decay, num_epochs, preprocess))
     image_datasets, dataloaders = Data_loader(
         batch_size=batch_size, preprocess=preprocess)
-    train(dataloaders, image_datasets, num_class,
-          num_epochs, model, optimizer, lr, batch_size, weight_decay, preprocess)
+    prefix = train(dataloaders, image_datasets, num_class,
+                   num_epochs, model, optimizer, lr, batch_size, weight_decay, preprocess)
+    eval(dataloaders, image_datasets, num_class, model, prefix)
