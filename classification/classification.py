@@ -257,36 +257,7 @@ def eval(dataloaders, image_datasets, num_class, model_name, prefix):
     criterion = nn.CrossEntropyLoss()
     model_path = "./models/" + prefix + "_best_acc.pkl"
     dataset_sizes = {x: len(image_datasets[x]) for x in [phase]}
-    since = time.time()
-    if model_name.startswith('resnet'):
-        if model_name == 'resnet18':
-            model = models.resnet18(pretrained=False)
-        elif model_name == 'resnet34':
-            model = models.resnet34(pretrained=False)
-        elif model_name == 'resnet50':
-            model = models.resnet50(pretrained=False)
-        else:
-            raise ValueError("Unsupported model type: %s" % model)
-        num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, num_class)
-        model = model.to(device)
-        model.load_state_dict(torch.load(model_path))
-    elif model_name.startswith('vgg'):
-        if model_name == 'vgg16':
-            model = models.vgg16(pretrained=False)
-        elif model_name == 'vgg19':
-            model = models.vgg19(pretrained=False)
-        else:
-            raise ValueError("Unsupported model type: %s" % model)
-        num_ftrs = model.classifier[6].in_features
-        model.classifier[6] = nn.Linear(num_ftrs, num_class)
-        model = model.to(device)
-        model.load_state_dict(torch.load(model_path))
-    elif model_name.startswith('Net'):
-        model = Net().to(device)
-        model.load_state_dict(torch.load(model_path))
-    else:
-        raise ValueError("Unsupported model type: %s" % model)
+    model = torch.load(model_path)
     use_auc = True
 
     for epoch in range(1):
