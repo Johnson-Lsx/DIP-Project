@@ -244,16 +244,15 @@ def train_model(dataloaders, image_datasets, model, criterion, optimizer, schedu
     return model
 
 
-def eval(dataloaders, image_datasets, num_class, model_name, prefix):
+def eval(dataloaders, image_datasets, num_class, prefix):
     """
     Args:
         dataloaders (Dict[str: torch.utils.data.DataLoader]): dataloaders that send the data to the model.
         image_datasets (Dict[str: torch.utils.data.Dataset]): training and validation datasets.
         num_class (int): the number of classes.
-        model_name (str): the name of the model to be evaluated, only support resnet18, 34, 50 and vgg16, 19.
         prefix (str): the name of image of the confuse matrix
     """
-    phase = 'val'
+    phase = 'test'
     criterion = nn.CrossEntropyLoss()
     model_path = "./models/" + prefix + "_best_acc.pkl"
     dataset_sizes = {x: len(image_datasets[x]) for x in [phase]}
@@ -420,25 +419,31 @@ def Data_loader(batch_size: int, preprocess: str = 'True'):
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
+        'test': transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]),
     }
     if preprocess == 'True':
         image_datasets = {x: customData(txt_path=(x + '.txt'),
                                         dataset=x,
                                         data_transforms=data_transforms,
-                                        ) for x in ['train', 'val']}
+                                        ) for x in ['train', 'val', 'test']}
     elif preprocess == 'False':
         image_datasets = {x: customData(txt_path=('ori_' + x + '.txt'),
                                         dataset=x,
                                         data_transforms=data_transforms,
-                                        ) for x in ['train', 'val']}
+                                        ) for x in ['train', 'val', 'test']}
     else:
         raise ValueError("preprocess can only be True or False")
     # wrap your data and label into Tensor
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x],
                                                   batch_size=batch_size,
-                                                  shuffle=True) for x in ['train', 'val']}
+                                                  shuffle=True) for x in ['train', 'val', 'test']}
 
-    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val', 'test']}
     print(dataset_sizes)
     return image_datasets, dataloaders
 
