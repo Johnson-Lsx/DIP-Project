@@ -4,6 +4,7 @@ import argparse
 import copy
 import logging
 import time
+import os
 
 import matplotlib
 import torch
@@ -474,6 +475,10 @@ if __name__ == '__main__':
     lr = args.lr
     weight_decay = args.weight_decay
     preprocess = args.preprocess
+    # check whether pwd has the needed subdirectories, if not make them
+    for subdirs in ['images', 'logs', 'models']:
+        if not os.path.exists(subdirs):
+            os.makedirs(subdirs)
 
     log_name = './logs/' + model + '_bs' + str(batch_size) + '_optim_' + optimizer + '_lr' + str(
         lr) + '_wd' + str(weight_decay) + '_epochs' + str(num_epochs) + '_pre_' + preprocess + '.log'
