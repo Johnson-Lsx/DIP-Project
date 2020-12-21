@@ -119,9 +119,9 @@ def main(data_path_ori: str, data_path_pre: str, use_val: str):
 parser = argparse.ArgumentParser(
     description="Divide the whole data set in to train set and test set")
 parser.add_argument('--data_path_ori',  type=str,
-                    help='the path of the whole original data set, e.g. /home2/wenyang/guest/data/DIP-data')
+                    help='the path of the whole original data set, e.g. /home2/wenyang/guest/data/DIP_data')
 parser.add_argument('--data_path_pre', type=str,
-                    help='the path of the whole preprocessed data set, e.g. /home2/wenyang/guest/data/DIP-data_pre')
+                    help='the path of the whole preprocessed data set, e.g. /home2/wenyang/guest/data/DIP_data_pre')
 parser.add_argument('--use_val', type=str,
                     help='if True, divide the whole data set in to train, validate and test set, else only train and test')
 
