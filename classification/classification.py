@@ -3,8 +3,8 @@ from __future__ import division, print_function
 import argparse
 import copy
 import logging
-import time
 import os
+import time
 
 import matplotlib
 import torch
@@ -444,7 +444,8 @@ def Data_loader(batch_size: int, preprocess: str = 'True'):
                                                   batch_size=batch_size,
                                                   shuffle=True) for x in ['train', 'val', 'test']}
 
-    dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val', 'test']}
+    dataset_sizes = {x: len(image_datasets[x])
+                     for x in ['train', 'val', 'test']}
     print(dataset_sizes)
     return image_datasets, dataloaders
 

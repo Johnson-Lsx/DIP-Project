@@ -60,21 +60,35 @@ def main(data_path_ori: str, data_path_pre: str, use_val: str):
         with open(train_txt, 'a') as f:
             for p in train:
                 for file in os.listdir(p):
-                    line = str(
-                        p) + '/' + str(file) + ' ' + str(label_dict[dir]) + '\n'
+                    # if file is somthing like b'Z-0008.tif', we need to remove b
+                    if str(file).startswith('b'):
+                        line = str(
+                            p) + '/' + str(file).split("'")[1] + ' ' + str(label_dict[dir]) + '\n'
+                    else:
+                        line = str(
+                            p) + '/' + str(file) + ' ' + str(label_dict[dir]) + '\n'
                     f.write(line)
         with open(test_txt, 'a') as f:
             for p in test:
                 for file in os.listdir(p):
-                    line = str(
-                        p) + '/' + str(file) + ' ' + str(label_dict[dir]) + '\n'
+                    # if file is somthing like b'Z-0008.tif', we need to remove b
+                    if str(file).startswith('b'):
+                        line = str(
+                            p) + '/' + str(file).split("'")[1] + ' ' + str(label_dict[dir]) + '\n'
+                    else:
+                        line = str(
+                            p) + '/' + str(file) + ' ' + str(label_dict[dir]) + '\n'
                     f.write(line)
         if use_val == 'True':
             with open(val_txt, 'a') as f:
                 for p in val:
                     for file in os.listdir(p):
-                        line = str(
-                            p) + '/' + str(file) + ' ' + str(label_dict[dir]) + '\n'
+                        if str(file).startswith('b'):
+                            line = str(
+                                p) + '/' + str(file).split("'")[1] + ' ' + str(label_dict[dir]) + '\n'
+                        else:
+                            line = str(
+                                p) + '/' + str(file) + ' ' + str(label_dict[dir]) + '\n'
                         f.write(line)
     # create the files for original data set
     train_list = []
@@ -112,7 +126,7 @@ def main(data_path_ori: str, data_path_pre: str, use_val: str):
                     ' ')[0]), 'Error! {}: no such file or directory!'.format(new_line.split(' ')[0])
                 val_list.append(new_line + '\n')
         with open(ori_val_txt, 'w') as f:
-            for line in train_list:
+            for line in val_list:
                 f.write(line)
 
 
