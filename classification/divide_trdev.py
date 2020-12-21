@@ -122,9 +122,13 @@ parser.add_argument('--data_path_ori',  type=str,
                     help='the path of the whole original data set, e.g. /home2/wenyang/guest/data/DIP-data')
 parser.add_argument('--data_path_pre', type=str,
                     help='the path of the whole preprocessed data set, e.g. /home2/wenyang/guest/data/DIP-data_pre')
+parser.add_argument('--use_val', type=str,
+                    help='if True, divide the whole data set in to train, validate and test set, else only train and test')
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
     data_path_ori = args.data_path_ori
     data_path_pre = args.data_path_pre
-    main(data_path_ori=data_path_ori, data_path_pre=data_path_pre)
+    use_val = args.use_val
+    main(data_path_ori=data_path_ori, data_path_pre=data_path_pre, use_val=use_val)
