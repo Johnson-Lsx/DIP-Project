@@ -43,7 +43,7 @@ def main(data_path_ori: str, data_path_pre: str, use_val: str):
             patients_dir = disease_dir + '/' + dir1
             patients_list.append(patients_dir)
         # for each class, randomly choose 80 patients as the train set
-        train = np.random.choice(patients_list, 80, replace=False)
+        train = np.random.choice(patients_list, 60, replace=False)
         test = []
         # the rest 20 patients in the class are chosen as the test set
         for d in patients_list:
