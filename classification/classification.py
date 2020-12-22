@@ -494,4 +494,4 @@ if __name__ == '__main__':
         batch_size=batch_size, preprocess=preprocess)
     prefix = train(dataloaders, image_datasets, num_class,
                    num_epochs, model, optimizer, lr, batch_size, weight_decay, preprocess)
-    eval(dataloaders, image_datasets, num_class, prefix)
+    #eval(dataloaders, image_datasets, num_class, prefix)
