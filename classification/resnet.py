@@ -1,4 +1,3 @@
-import math
 from functools import partial
 
 import torch
@@ -178,7 +177,8 @@ class ResNet(nn.Module):
                                      stride=stride)
             else:
                 downsample = nn.Sequential(
-                    conv1x1x1(self.in_planes, planes * block.expansion, stride),
+                    conv1x1x1(self.in_planes, planes *
+                              block.expansion, stride),
                     nn.BatchNorm3d(planes * block.expansion))
 
         layers = []
@@ -230,5 +230,7 @@ def generate_model(model_depth, **kwargs):
         model = ResNet(Bottleneck, [3, 8, 36, 3], get_inplanes(), **kwargs)
     elif model_depth == 200:
         model = ResNet(Bottleneck, [3, 24, 36, 3], get_inplanes(), **kwargs)
+    else:
+        raise ValueError("Unsupported depth: %d" % model_depth)
 
     return model
