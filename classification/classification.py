@@ -420,32 +420,26 @@ def Data_loader(batch_size: int, preprocess: str = 'True'):
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
-        'test': transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ]),
     }
     if preprocess == 'True':
         image_datasets = {x: customData(txt_path=(x + '.txt'),
                                         dataset=x,
                                         data_transforms=data_transforms,
-                                        ) for x in ['train', 'val', 'test']}
+                                        ) for x in ['train', 'val']}
     elif preprocess == 'False':
         image_datasets = {x: customData(txt_path=('ori_' + x + '.txt'),
                                         dataset=x,
                                         data_transforms=data_transforms,
-                                        ) for x in ['train', 'val', 'test']}
+                                        ) for x in ['train', 'val']}
     else:
         raise ValueError("preprocess can only be True or False")
     # wrap your data and label into Tensor
     dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x],
                                                   batch_size=batch_size,
-                                                  shuffle=True) for x in ['train', 'val', 'test']}
+                                                  shuffle=True) for x in ['train', 'val']}
 
     dataset_sizes = {x: len(image_datasets[x])
-                     for x in ['train', 'val', 'test']}
+                     for x in ['train', 'val']}
     print(dataset_sizes)
     return image_datasets, dataloaders
 
@@ -494,4 +488,3 @@ if __name__ == '__main__':
         batch_size=batch_size, preprocess=preprocess)
     prefix = train(dataloaders, image_datasets, num_class,
                    num_epochs, model, optimizer, lr, batch_size, weight_decay, preprocess)
-    eval(dataloaders, image_datasets, num_class, prefix)
