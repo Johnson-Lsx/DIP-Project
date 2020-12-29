@@ -59,7 +59,7 @@
 
    ```
    python preprocess.py --help
-   usage: preprocess.py [-h] [--src_root_path SRC_ROOT_PATH] [--dst_root_path DST_ROOT_PATH]                                                                                                                                                                                                                                                         Data preprocess for image classification                                                                                                                                 
+   usage: preprocess.py [-h] [--src_root_path SRC_ROOT_PATH] [--dst_root_path DST_ROOT_PATH]                                                                                                                                                                                                            Data preprocess for image classification                                                                                                                                 
    optional arguments:
      -h, --help            show this help message and exit
      --src_root_path SRC_ROOT_PATH
