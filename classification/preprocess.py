@@ -1,8 +1,9 @@
-import cv2 as cv
-import numpy as np
-
+import argparse
 import os
 import sys
+
+import cv2 as cv
+import numpy as np
 
 
 def binarization(img):
@@ -84,11 +85,7 @@ def process_image(src_file_name, dst_file_name, src_path, dst_path):
     cv.imwrite(os.path.join(dst_path, dst_file_name), cropped_img)
 
 
-src_root_path = "/home2/wenyang/research/classfication/dataset/train"
-dst_root_path = "/home2/wenyang/guest/result-3/train"
-
-
-def traverse_dataset():
+def traverse_dataset(src_root_path, dst_root_path):
     img_cnt = 0
     for src_sub_dir_name in os.listdir(src_root_path):
         src_sub_dir = os.path.join(src_root_path, src_sub_dir_name)
@@ -107,5 +104,15 @@ def traverse_dataset():
     print("Finished processing " + str(img_cnt) + " images.")
 
 
+parser = argparse.ArgumentParser(
+    description="Data preprocess for image classification")
+parser.add_argument('--src_root_path', type=str,
+                    help='the absolute path of the whole dataset')
+parser.add_argument('--dst_root_path', type=str,
+                    help='the path to store the preprocessed images')
+
 if __name__ == "__main__":
-    traverse_dataset()
+    args = parser.parse_args()
+    src_root_path = args.src_root_path
+    dst_root_path = args.dst_root_path
+    traverse_dataset(src_root_path, dst_root_path)
