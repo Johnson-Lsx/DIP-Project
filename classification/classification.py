@@ -19,7 +19,6 @@ from tqdm import tqdm
 
 from metric import (
     cal_metric, sklearn_cal_metric, sklearn_plot, sklearn_stat, stat)
-from nets import Net
 
 matplotlib.use('Agg')
 
