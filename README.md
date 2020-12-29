@@ -58,14 +58,17 @@
 1. 运行预处理脚本`preprocess.py`生成预处理后的数据集，该脚本的使用说明如下：
 
    ```
-   python preprocess.py --help
-   usage: preprocess.py [-h] [--src_root_path SRC_ROOT_PATH] [--dst_root_path DST_ROOT_PATH]                                                                                        Data preprocess for image classification                                                                                                                                 
+   usage: preprocess.py [-h] [--src_root_path SRC_ROOT_PATH]
+                     [--dst_root_path DST_ROOT_PATH]
+
+   Data preprocess for image classification
+
    optional arguments:
-     -h, --help            show this help message and exit
-     --src_root_path SRC_ROOT_PATH
-                           the absolute path of the whole dataset
-     --dst_root_path DST_ROOT_PATH
-                           the path to store the preprocessed images
+   -h, --help            show this help message and exit
+   --src_root_path SRC_ROOT_PATH
+                        the absolute path of the whole dataset
+   --dst_root_path DST_ROOT_PATH
+                        the path to store the preprocessed image
    ```
 
 2. 预处理脚本会将处理之后的所有图片按照原来的目录结构保存，所以会有两份数据，一份是原始数据，一份是预处理之后的数据，假设原始数据的顶层目录路径为`/your/path/to/DIP_data`，预处理之后数据的顶层目录路径为`/your/path/to/DIP_data_pre`。
