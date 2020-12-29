@@ -51,6 +51,8 @@ class RetinalOCT(torch.utils.data.Dataset):
             file_path = os.path.join(dir_path, file_name)
             appenddix = file_path
             imgs.append(cv.resize(cv.imread(file_path, flags=cv.IMREAD_GRAYSCALE), (224,224)))
+            if i == 18: # 多于19张的舍弃掉
+                break
 
         if idx < 18: # 如果该病人不足19张图片,那么idx将会小于18
             for i in range(18 - idx): # 将该病人的最后一张图片多次添加，直到凑足19张
