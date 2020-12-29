@@ -56,10 +56,22 @@ def cal_metric(stat):
     F1_score = list()
     metric = dict()
     for i in range(len(stat)):
-        a = float(stat[i]['TP'])/(stat[i]['Total'])
-        p = float(stat[i]['TP'])/(stat[i]['TP']+stat[i]['FP'])
-        r = float(stat[i]['TP'])/(stat[i]['TP']+stat[i]['FN'])
-        f = 2/(1/p + 1/r)
+        if stat[i]['Total'] == 0:
+            a = 0
+        else:
+            a = float(stat[i]['TP'])/(stat[i]['Total'])
+        if (stat[i]['TP']+stat[i]['FP']) == 0:
+            p = 0
+        else:
+            p = float(stat[i]['TP'])/(stat[i]['TP']+stat[i]['FP'])
+        if (stat[i]['TP']+stat[i]['FN']) == 0:
+            r = 0
+        else:
+            r = float(stat[i]['TP'])/(stat[i]['TP']+stat[i]['FN'])
+        if p == 0 or r == 0:
+            f = 0
+        else:
+            f = 2/(1/p + 1/r)
         accuracy.append(a)
         precision.append(p)
         recall.append(r)
@@ -131,6 +143,7 @@ def sklearn_cal_metric(stat, use_auc):
             stat['labels'], stat['scores'][0], multi_class='ovr')
     return metric
 
+
 def sklearn_plot(stat, prefix):
     """
     Args:
@@ -139,7 +152,7 @@ def sklearn_plot(stat, prefix):
     """
     sn.heatmap(confusion_matrix(
         stat['labels'], stat['preds']), annot=True, cmap='OrRd')
-    plt.xlabel('Predicted label', color='k') 
+    plt.xlabel('Predicted label', color='k')
     plt.ylabel('True label', color='k')
     plt.savefig('./images/' + prefix + '_confusion_matrix.png')
     plt.close()

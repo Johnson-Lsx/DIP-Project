@@ -2,6 +2,7 @@ import os
 
 import cv2 as cv
 import numpy as np
+from numpy.lib.function_base import append
 import torch
 import torchvision.transforms as transforms
 
@@ -43,9 +44,17 @@ class RetinalOCT(torch.utils.data.Dataset):
     def __getitem__(self, item):
         dir_path = self.img_path[item]
         imgs = []
-        for file_name in os.listdir(dir_path):
+        idx = 0
+        appenddix = ''
+        for i, file_name in enumerate(os.listdir(dir_path)):
+            idx = i
             file_path = os.path.join(dir_path, file_name)
+            appenddix = file_path
             imgs.append(cv.resize(cv.imread(file_path, flags=cv.IMREAD_GRAYSCALE), (224,224)))
+
+        if idx < 18: # 如果该病人不足19张图片,那么idx将会小于18
+            for i in range(18 - idx): # 将该病人的最后一张图片多次添加，直到凑足19张
+                imgs.append(cv.resize(cv.imread(appenddix, flags=cv.IMREAD_GRAYSCALE), (224,224)))
         return self.data_transform(np.stack(imgs,axis=2)), self.img_label[item]
 
 def Data_loader_3D(img_root_dir, batch_size):
