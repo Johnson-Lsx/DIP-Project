@@ -1,16 +1,17 @@
 from __future__ import division, print_function
 
 import argparse
+import copy
 import logging
 import os
 import time
-from tqdm import tqdm
-import copy
+
 import matplotlib
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
+from tqdm import tqdm
 
 from classification import plot_curve
 from dataset import Data_loader_3D
@@ -175,6 +176,7 @@ def train(img_root_dir: str, dataloaders, image_datasets, num_class: int, num_ep
     assert model_depth in [10, 18, 34, 50, 101, 152,
                            200], "model_depth should be in [10, 18, 34, 50, 101, 152, 200], but got {}".format(model_depth)
     model = generate_model(model_depth)
+    model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
     # Observe that all parameters are being optimized
