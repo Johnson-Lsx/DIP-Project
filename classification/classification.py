@@ -386,8 +386,8 @@ def train(dataloaders, image_datasets, num_class: int, num_epochs: int, model: s
                                        {'params': model_ft.classifier[6].parameters(), 'lr': lr * 10}],
                                       lr=lr, weight_decay=weight_decay)
         else:
-            optimizer_ft = optim.SGD(
-                model_ft.parameters(), lr=lr, momentum=0.9)
+            optimizer_ft = optim.Adam(
+                model_ft.parameters(), lr=lr, weight_decay=weight_decay)
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = lr_scheduler.StepLR(
         optimizer_ft, step_size=7, gamma=0.1)
@@ -448,7 +448,7 @@ parser = argparse.ArgumentParser(description="Image classification")
 parser.add_argument('--batch_size', default=8, type=int,
                     help='batch size, default 8')
 parser.add_argument('--num_epochs', default=30, type=int,
-                    help='the number of epochs to train the model, default 25')
+                    help='the number of epochs to train the model, default 30')
 parser.add_argument('--model', default='resnet18', type=str,
                     help='the model to train, only supported resnet18, 34, 50 and vgg16, 19, default resnet18')
 parser.add_argument('--optimizer', default='adam', type=str,
